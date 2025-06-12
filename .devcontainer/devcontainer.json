@@ -1,14 +1,11 @@
 {
   "name": "Travel Wallet Dev",
-  "dockerFile": "../Dockerfile",
-  "context": "..",
-  "appPort": [8000],
+  "dockerComposeFile": ["../docker-compose.yml"],
+  "service": "web",
+  "workspaceFolder": "/app",
+  "postCreateCommand": "pip install --upgrade pip && pip install -r requirements.txt",
   "customizations": {
     "vscode": {
-      "settings": {
-        "python.defaultInterpreterPath": "/usr/local/bin/python",
-        "editor.formatOnSave": true
-      },
       "extensions": [
         "ms-python.python",
         "ms-python.vscode-pylance",
@@ -16,5 +13,6 @@
         "ms-azuretools.vscode-docker"
       ]
     }
-  }
+  },
+  "remoteUser": "root"
 }
