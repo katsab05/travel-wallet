@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
 from sqlalchemy.sql import func
-from app.models.base import Base, BaseModelMixin
+from app.models.base import Base, ReprMixin
 
-class User(Base, BaseModelMixin):
+class User(Base, ReprMixin):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)

@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, ForeignKey, String, DateTime
 from sqlalchemy.sql import func
-from app.models.base import Base, BaseModelMixin
+from app.models.base import Base, ReprMixin
 
-class TravelDocument(Base, BaseModelMixin):
+class TravelDocument(Base, ReprMixin):
     __tablename__ = "travel_documents"
 
     id = Column(Integer, primary_key=True, index=True)

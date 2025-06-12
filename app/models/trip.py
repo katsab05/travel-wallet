@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, Date, Text
-from app.models.base import Base, BaseModelMixin
+from app.models.base import Base, ReprMixin
 
-class Trip(Base, BaseModelMixin):
+class Trip(Base, ReprMixin):
     __tablename__ = "trips"
 
     id = Column(Integer, primary_key=True, index=True)

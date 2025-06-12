@@ -1,8 +1,8 @@
 from sqlalchemy import Column, Integer, String, DateTime, Numeric, ForeignKey, Text
 from sqlalchemy.sql import func
-from app.models.base import Base, BaseModelMixin
+from app.models.base import Base, ReprMixin
 
-class Expense(Base, BaseModelMixin):
+class Expense(Base,ReprMixin):
     __tablename__ = "expenses"
 
     id = Column(Integer, primary_key=True, index=True)

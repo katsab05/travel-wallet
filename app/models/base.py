@@ -2,7 +2,7 @@ from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
-class BaseModelMixin:
+class ReprMixin:
     def __repr__(self):
         classname = self.__class__.__name__
         field_pairs = []
