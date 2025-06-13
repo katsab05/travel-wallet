@@ -6,7 +6,7 @@ Dependency Injection for Authenticated User.
 from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
-from core.config import settings
+from core.config import get_settings
 from app.db.session import get_db
 from app.repositories.user_repository import get_user_by_email
 
@@ -22,7 +22,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db=Depends(get_d
 
     credentials_exception = HTTPException(status_code=401, detail="Invalid credentials")
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        payload = jwt.decode(token, get_settings.SECRET_KEY, algorithms=["HS256"])
         email = payload.get("sub")
         if email is None:
             raise credentials_exception
