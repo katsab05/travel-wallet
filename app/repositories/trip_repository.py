@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.models.trip import Trip
 
-async def create_trip(session: AsyncSession, trip: Trip) -> Trip:
+async def create(session: AsyncSession, trip: Trip) -> Trip:
     """
     Add a new trip record to the database.
 
@@ -25,7 +25,7 @@ async def create_trip(session: AsyncSession, trip: Trip) -> Trip:
     await session.refresh(trip)
     return trip
 
-async def list_trips(session: AsyncSession) -> list[Trip]:
+async def get_all_trips(session: AsyncSession) -> list[Trip]:
     """
     Retrieve all trips from the database.
 
@@ -38,7 +38,7 @@ async def list_trips(session: AsyncSession) -> list[Trip]:
     result = await session.execute(select(Trip))
     return result.scalars().all()
 
-async def delete_trip(session: AsyncSession, trip_id: int) -> bool:
+async def delete_trip_by_id(session: AsyncSession, trip_id: int) -> bool:
     """
     Delete a trip by trip ID.
 

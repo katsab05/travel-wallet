@@ -6,6 +6,7 @@ from app.services.auth_service import authenticate_user
 from app.schemas.user_schema import UserIn, UserOut
 from app.repositories.user_repository import is_email_taken
 from app.services.user_service import create_user
+from core.security import create_access_token
 
 router = APIRouter()
 
@@ -27,13 +28,24 @@ async def register_user(
     db: AsyncSession = Depends(get_db)
 ):
     """
-    Register a new user.
+    Register a new user and return a JWT access token.
+
+    - Checks if the email is already registered.
+    - Hashes the password.
+    - Creates the user record in the DB.
+    - Returns a signed JWT for immediate login.
+
+    Args:
+        user_in (UserIn): User registration data
+        db (AsyncSession): Async database session
 
     Returns:
-        UserOut: Public user info
+        dict: Access token and token type
     """
+
     if await is_email_taken(db, user_in.email):
         raise HTTPException(status_code=400, detail="Email already registered")
 
     user = await create_user(db, user_in)
-    return user
+    token = create_access_token(data={"sub": user.email})
+    return {"access_token": token, "token_type": "bearer"}
