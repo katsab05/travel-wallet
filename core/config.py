@@ -1,4 +1,4 @@
-from pydantic import BaseSettings
+from pydantic_settings import BaseSettings
 from functools import lru_cache
 from typing import Literal
 
@@ -7,6 +7,7 @@ class Settings(BaseSettings):
 
     PROJECT_NAME: str = "Travel Wallet"
     DATABASE_URL: str
+    SECRET_KEY: str = "huaoibdusyia1535"
 
     # S3 settings 
     AWS_ACCESS_KEY_ID: str = ""

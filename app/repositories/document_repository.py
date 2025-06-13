@@ -5,6 +5,7 @@ Provides direct database access functions for Document model.
 """
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
 from app.models.document import TravelDocument
 
 async def create(db: AsyncSession, doc: TravelDocument) -> TravelDocument:
@@ -23,3 +24,10 @@ async def create(db: AsyncSession, doc: TravelDocument) -> TravelDocument:
     await db.commit()
     await db.refresh(doc)
     return doc
+
+async def get_all_documents(db: AsyncSession, user_id: int, trip_id: int = None):
+    query = select(TravelDocument).where(TravelDocument.user_id == user_id)
+    if trip_id:
+        query = query.where(TravelDocument.trip_id == trip_id)
+    result = await db.execute(query)
+    return result.scalars().all()
