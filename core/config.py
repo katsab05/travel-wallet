@@ -3,7 +3,7 @@ from functools import lru_cache
 from typing import Literal
 
 class Settings(BaseSettings):
-    MODE: Literal["dev", "prod"] = "dev"
+    MODE: Literal["dev", "prod", "test"] = "dev"  # Added "test" to allowed values
 
     PROJECT_NAME: str = "Travel Wallet"
     DATABASE_URL: str
@@ -21,3 +21,10 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     return Settings()
+
+# Function to clear the cache during testing
+def clear_settings_cache():
+    """Clear the settings cache. Useful for testing."""
+    get_settings.cache_clear()
+
+settings = get_settings()
