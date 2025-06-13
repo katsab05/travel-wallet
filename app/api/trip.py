@@ -1,5 +1,5 @@
 """
-Trip API Router.
+Trip API 
 
 Defines endpoints for listing, creating, and deleting trips.
 All routes are protected by OAuth2 token-based authentication.

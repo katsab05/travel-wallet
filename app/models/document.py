@@ -6,10 +6,8 @@ class TravelDocument(Base, ReprMixin):
     __tablename__ = "travel_documents"
 
     id = Column(Integer, primary_key=True, index=True)
-    file_path = Column(String, nullable=False)
-    trip_id = Column(Integer, ForeignKey("trips.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    trip_id = Column(Integer, ForeignKey("trips.id"), nullable=True)
+    file_name = Column(String, nullable=False)
+    file_path = Column(String, nullable=False)  # local path or S3 URL
     uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    def __repr__(self):
-        return f"<TravelDocument(id={self.id}, trip_id={self.trip_id}, file_path='{self.file_path}')>"
-
