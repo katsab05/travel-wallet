@@ -5,7 +5,7 @@ from sqlalchemy.orm import relationship
 class Trip(Base, ReprMixin):
     __tablename__ = "trips"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
     destination = Column(String, nullable=False)
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=False)
