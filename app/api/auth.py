@@ -1,3 +1,10 @@
+"""
+Auth API
+
+Endpoints for login and register user.
+"""
+
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -7,14 +14,15 @@ from app.schemas.user_schema import UserIn, UserOut
 from app.repositories.user_repository import is_email_taken
 from app.services.user_service import create_user
 from core.security import create_access_token
+from app.schemas.token_schema import TokenOut
 
 router = APIRouter()
-
-@router.post("/login")
+@router.post("/login", response_model=TokenOut)
 async def login_user(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
+    
     """
     Handle user login and return a JWT access token.
     """
@@ -22,11 +30,12 @@ async def login_user(
     return {"access_token": token, "token_type": "bearer"}
 
 
-@router.post("/register", response_model=UserOut)
+@router.post("/register", response_model=TokenOut, status_code=201)   # 👈 changed
 async def register_user(
     user_in: UserIn,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
+    
     """
     Register a new user and return a JWT access token.
 
@@ -42,10 +51,12 @@ async def register_user(
     Returns:
         dict: Access token and token type
     """
-
     if await is_email_taken(db, user_in.email):
         raise HTTPException(status_code=400, detail="Email already registered")
 
     user = await create_user(db, user_in)
     token = create_access_token(data={"sub": user.email})
     return {"access_token": token, "token_type": "bearer"}
+
+
+

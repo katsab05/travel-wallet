@@ -8,9 +8,10 @@ Handles password hashing and JWT token creation/verification.
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from datetime import datetime, timedelta
-from core.config import settings
+from core.config import get_settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+settings = get_settings() 
 
 SECRET_KEY = settings.SECRET_KEY
 ALGORITHM = "HS256"

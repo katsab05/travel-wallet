@@ -11,7 +11,7 @@ from app.schemas.trip_schema import TripIn
 from app.repositories import trip_repository
 
 
-async def create_trip_service(db: AsyncSession, trip_data: TripIn) -> Trip:
+async def create_trip_service(db: AsyncSession, trip_data: TripIn, user_id: int) -> Trip:
     """
     Create a new trip from validated schema data.
 
@@ -22,11 +22,12 @@ async def create_trip_service(db: AsyncSession, trip_data: TripIn) -> Trip:
     Returns:
         Trip: Newly created trip instance
     """
-    trip = Trip(**trip_data.dict())
+    trip = Trip(**trip_data.dict(),
+                user_id =user_id)
     return await trip_repository.create(db, trip)
 
 
-async def get_all_trips_service(db: AsyncSession) -> list[Trip]:
+async def get_all_trips_service(db: AsyncSession, user_id:int) -> list[Trip]:
     """
     Retrieve all trips from the database.
 
