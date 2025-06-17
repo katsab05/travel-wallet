@@ -19,7 +19,16 @@ async def test_document_upload_and_list(async_client):
 async def test_document_validation_rejects_large_file(async_client):
     headers = await get_auth_header(async_client)
 
-    big = b"x" * (6 * 1024 * 1024)  # 6 MB
-    files = {"file": ("big.jpg", io.BytesIO(big), "image/jpeg")}
-    res = await async_client.post("/documents/", headers=headers, files=files)
-    assert res.status_code == 400
+    # Create a dummy file larger than 5MB
+    content = b"x" * (6 * 1024 * 1024)  # 6MB
+    file = io.BytesIO(content)
+    file.name = "large_upload.pdf"
+
+    response = await async_client.post(
+        "/documents/",
+        headers=headers,
+        files={"file": ("large_upload.pdf", file, "application/pdf")},
+    )
+
+    assert response.status_code == 400
+    assert "size limit" in response.text.lower()

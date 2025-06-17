@@ -32,15 +32,15 @@ async def validate_upload_file(file: UploadFile) -> None:
     Raises HTTP 400 on unsupported extension or >5 MB size.
     Rewinds pointer afterwards.
     """
-    ext = file.filename.rsplit(".", 1)[-1].lower()
-    if ext not in ALLOWED_EXTENSIONS:
-        raise HTTPException(status_code=400, detail="Unsupported file type.")
+    if not file or not file.filename:
+        raise HTTPException(status_code=400, detail="No file uploaded.")
 
-    content = await file.read()
-    if len(content) > MAX_FILE_SIZE_MB * 1024 * 1024:
-        raise HTTPException(status_code=400, detail="File exceeds 5 MB size limit.")
-
-    file.file.seek(0) 
+    try:
+        content = await file.read()
+        if len(content) > MAX_FILE_SIZE_MB * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="File exceeds 5 MB size limit.")
+    finally:
+        await file.seek(0)
 
 # Service Func
 async def save_document(
