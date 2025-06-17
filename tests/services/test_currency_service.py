@@ -16,6 +16,5 @@ async def test_conversion_with_external_api(monkeypatch, db_session):
     amount = await convert_currency(10, "USD", "ZAR", db=db_session)
     assert amount == 200.0  # 10 × 20
 
-    # second call → should hit DB cache, so mock not triggered
     amount2 = await convert_currency(5, "USD", "ZAR", db=db_session)
     assert amount2 == 100.0

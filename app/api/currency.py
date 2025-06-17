@@ -1,3 +1,9 @@
+"""
+Currency API
+
+Endpoint for converting currency.
+"""
+
 from fastapi import APIRouter, Query, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services import currency_service

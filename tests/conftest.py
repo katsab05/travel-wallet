@@ -1,124 +1,105 @@
-"""
-Global pytest fixtures   +   helper to register a throw-away user
------------------------------------------------------------------
-* Forces async DATABASE_URL to use +asyncpg
-* Adds project root to PYTHONPATH
-* Clears Settings cache so new env is seen
-* Provides:
-      db_session   – brand-new AsyncSession per test (no SAVEPOINT gymnastics)
-      async_client – httpx.AsyncClient (ASGITransport) + dependency override
-      get_auth_header(client) → {"Authorization": "Bearer <token>"}
-"""
-
 from __future__ import annotations
-import os, sys, uuid
-import subprocess, pytest
-from pathlib import Path
-from typing import AsyncGenerator
+import os, sys, uuid, pathlib, subprocess, urllib.parse
 
-# ───────────── 1. patch env BEFORE imports ────────────── #
 os.environ["DATABASE_URL"] = "postgresql+asyncpg://postgres:postgres@localhost:6543/travel_wallet_test"
-os.environ.setdefault("MODE", "test")
+os.environ["MODE"] = "test"
 os.environ.setdefault("SECRET_KEY", "tests-secret")
 
-# add project root to PYTHONPATH so 'core', 'app' import
-project_root = Path(__file__).resolve().parents[1]
+
+project_root = pathlib.Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(project_root))
 
-# ───────────── 2. clear Settings cache ────────────────── #
-from core.config import get_settings          # noqa: E402
+
+import psycopg2
+from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
+import pytest
+from sqlalchemy import create_engine, inspect
+from app.models.base import Base  # ← your declarative base
+
+@pytest.fixture(scope="session", autouse=True)
+def _prepare_database():
+    """Prepare test DB schema using sync engine and Alembic."""
+    async_url = os.environ["DATABASE_URL"]
+    alembic_url = async_url.replace("+asyncpg", "+psycopg2")
+    plain_url = async_url.replace("+asyncpg", "")
+
+    parsed = urllib.parse.urlparse(plain_url)
+    admin_url = parsed._replace(path="/postgres").geturl()
+    db_name = parsed.path.lstrip("/")
+
+    # Create DB if it doesn't exist
+    try:
+        conn = psycopg2.connect(admin_url)
+        conn.set_isolation_level(ISOLATION_LEVEL_AUTOCOMMIT)
+        with conn.cursor() as cur:
+            cur.execute(f'CREATE DATABASE "{db_name}"')
+    except psycopg2.errors.DuplicateDatabase:
+        pass
+    finally:
+        if "conn" in locals():
+            conn.close()
+
+    # Run Alembic migrations
+    result = subprocess.run(
+        ["alembic", "upgrade", "head"],
+        cwd=project_root,
+        env={**os.environ, "DATABASE_URL": alembic_url},
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        print("--- Alembic stdout ---\n", result.stdout)
+        print("--- Alembic stderr ---\n", result.stderr)
+        raise RuntimeError("Alembic migration failed")
+
+    engine = create_engine(plain_url)
+    insp = inspect(engine)
+    missing = [t for t in Base.metadata.tables if not insp.has_table(t)]
+    if missing:
+        Base.metadata.create_all(engine, tables=[Base.metadata.tables[n] for n in missing])
+
+# Clear config settings
+from core.config import get_settings
 get_settings.cache_clear()
 
-# ───────────── 3. import app / DB objects ─────────────── #
-import pytest
+# Test client/db
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from main import app
 from app.db.session import async_session_maker, get_db
 
-from sqlalchemy.ext.asyncio import create_async_engine
-
-from app.models.base import Base
-
-
-# pytest-asyncio marker auto-enable
 def pytest_configure(config):
     config.addinivalue_line("markers", "asyncio")
 
-
-# ─────────────  fixtures  ─────────────────────────────── #
-import subprocess, pathlib, os, pytest
-
-@pytest.fixture(scope="session", autouse=True)
-def _apply_migrations():
-    """
-    Run Alembic once with a *sync* driver URL so tables
-    (users, trips, expenses, …) are present for every test.
-    """
-    async_url = os.environ["DATABASE_URL"]
-    sync_url = async_url.replace("+asyncpg", "+psycopg2")   # key line
-
-    proj_root = pathlib.Path(__file__).resolve().parents[1]
-    env = {**os.environ, "DATABASE_URL": sync_url}
-
-    res = subprocess.run(
-        ["alembic", "upgrade", "head"],
-        cwd=proj_root,
-        env=env,
-        text=True,
-        capture_output=True,
-    )
-    if res.returncode != 0:
-        sys.stderr.write("\n--- Alembic stdout ---\n" + res.stdout)
-        sys.stderr.write("\n--- Alembic stderr ---\n" + res.stderr)
-        raise RuntimeError("Migrations did not apply - see logs above")
-    
-
-@pytest_asyncio.fixture(scope="session", autouse=True)
-async def _ensure_all_tables():
-    """Create any tables Alembic missed (dev safety-net)."""
-    async_engine = create_async_engine(os.environ["DATABASE_URL"])
-    async with async_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
+from typing import AsyncGenerator
 
 @pytest_asyncio.fixture(scope="function")
 async def db_session() -> AsyncGenerator[AsyncSession, None]:
-    """
-    Fresh AsyncSession per test.  No nested SAVEPOINT—services may commit.
-    Test DB is disposable, so we don't roll back.
-    """
+    """Yield a clean AsyncSession for each test (no SAVEPOINTs)."""
     async with async_session_maker() as session:
         yield session
         await session.close()
 
-
 @pytest_asyncio.fixture(scope="function")
-async def async_client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
-    """FastAPI test-client bound to the same DB session."""
+async def async_client():
+    """Yield an HTTPX AsyncClient with isolated DB session per request."""
     async def _override_get_db():
-        yield db_session
+        async with async_session_maker() as session:
+            yield session
 
     app.dependency_overrides[get_db] = _override_get_db
 
-    transport = ASGITransport(app=app)        # httpx ≥ 0.26
+    transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
 
     app.dependency_overrides.clear()
 
-
-# ─────────────  helper shared by all tests  ───────────── #
+# register fake user
 async def get_auth_header(client) -> dict[str, str]:
-    """
-    Register a unique user, return auth header.
-    Guarantees no duplicate-email DB collisions.
-    """
     email = f"test_{uuid.uuid4().hex}@example.com"
-    payload = {"email": email, "password": "Pass123!", "full_name": "Test"}
-    res = await client.post("/auth/register", json=payload)
-    assert res.status_code in (200, 201)
-    token = res.json()["access_token"]
-    return {"Authorization": f"Bearer {token}"}
+    payload = {"email": email, "password": "Pass123!", "full_name": "Test User"}
+    r = await client.post("/auth/register", json=payload)
+    assert r.status_code in (200, 201)
+    return {"Authorization": f"Bearer {r.json()['access_token']}"}

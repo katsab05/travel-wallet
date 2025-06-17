@@ -7,14 +7,15 @@ from fastapi import FastAPI
 
 
 from fastapi import FastAPI
-from app.api import trip, expense, auth
+from app.api import trip, expense, auth, document
 
 app = FastAPI()
 
 # routes
-app.include_router(trip.router, prefix="/trips", tags=["Trips"])
-app.include_router(expense.router, prefix="/expenses", tags=["Expenses"])
+app.include_router(trip.router, prefix="/trips", tags=["trips"])
+app.include_router(expense.router, prefix="/expenses", tags=["expenses"])
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
+app.include_router(document.router, prefix='/documents', tags=["documents)"])
 
 # errors
 @app.exception_handler(Exception)

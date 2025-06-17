@@ -1,6 +1,8 @@
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
 from sqlalchemy.sql import func
 from app.models.base import Base, ReprMixin
+from sqlalchemy.orm import relationship
+
 
 class User(Base, ReprMixin):
     __tablename__ = "users"
@@ -11,6 +13,9 @@ class User(Base, ReprMixin):
     password = Column(String, nullable=False)  
     is_active = Column(Boolean, default=True)
     is_admin = Column(Boolean, default=False)
+    trips = relationship("Trip", back_populates="user", cascade="all, delete-orphan")
+    expenses = relationship("Expense", back_populates="user", cascade="all, delete")
+
     
 
 

@@ -28,7 +28,11 @@ async def test_expense_crud(async_client):
     assert res.status_code == 201
     expense_id = res.json()["id"]
 
-    res = await async_client.get(f"/expenses?trip_id={trip['id']}", headers=headers)
+    res = await async_client.get(f"/expenses/?trip_id={trip['id']}", headers=headers) 
+    print("GET /expenses status:", res.status_code)
+    print("GET /expenses content:", res.text)
+    assert res.status_code == 200
+
     assert res.json()[0]["id"] == expense_id
 
     res = await async_client.delete(f"/expenses/{expense_id}", headers=headers)
