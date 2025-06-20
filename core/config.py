@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     AWS_BUCKET_NAME: str = ""
     AWS_REGION: str = ""
 
+    # Google maps
+    GOOGLE_MAPS_API_KEY: str 
+
     class Config:
         env_file = ".env"
 
